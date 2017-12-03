@@ -10,14 +10,6 @@ include(FindDependency)
 
 set_dependency_dirs()
 
-set_search_dirs(NAME OpenCV)
+find_package(opencv COMPONENTS core imgproc highgui REQUIRED)
 
-find(OpenCV_DIR STATUS
-PATHS ${OpenCV_SEARCH_DIRS}
-INDICATOR OpenCVModules.cmake
-LEVEL 4
-DOC "OpenCV export directory")
-
-find_package(OpenCV REQUIRED)
-
-target_link_libraries(ComputerVisionHomework PUBLIC ${OpenCV_LIBS})
+target_link_libraries(ComputerVisionHomework PUBLIC opencv_core opencv_imgproc opencv_highgui)

@@ -13,12 +13,10 @@ macro(set_dependency_dirs)
     if(NOT DEPENDENCIES_DIRS_EXISTS)
         set(DEPENDENCIES_DIRS_TMP "")
         if(EXISTS "${CMAKE_SOURCE_DIR}/3rdparty" AND DEPENDENCIES_USE_3RDPARTY_DIR)
-            #set(DEPENDENCIES_DIR ${CMAKE_SOURCE_DIR}/3rdparty CACHE PATH ${DEPENDENCIES_DIR_DESCR} FORCE)
             list(APPEND DEPENDENCIES_DIRS_TMP ${CMAKE_SOURCE_DIR}/3rdparty)
             set(DEPENDENCIES_DIRS_EXISTS TRUE)
         endif()
         if(EXISTS "$ENV{LIB_DIR}" AND DEPENDENCIES_USE_LIB_DIR)
-            #set(DEPENDENCIES_DIR $ENV{LIB_DIR} CACHE PATH ${DEPENDENCIES_DIR_DESCR} FORCE)
             list(APPEND DEPENDENCIES_DIRS_TMP $ENV{LIB_DIR})
             set(DEPENDENCIES_DIRS_EXISTS TRUE)
         endif()
@@ -80,9 +78,12 @@ macro(set_search_dirs)
 
     if(DEPENDENCIES_DIRS_EXISTS)
         foreach(PATH ${DEPENDENCIES_DIRS})
-            if(EXISTS "${PATH}${ARGS_PATH_HINT}")
-                list(APPEND ${ARGS_NAME}_SEARCH_DIRS "${PATH}${ARGS_PATH_HINT}")
-            endif()
+            foreach(HINT ${ARGS_HINTS})
+                add_to_path(PATH_WITH_HINT "${PATH}" "${HINT}")
+                if(EXISTS "${PATH_WITH_HINT}")
+                    list(APPEND ${ARGS_NAME}_SEARCH_DIRS "${PATH_WITH_HINT}")
+                endif()
+            endforeach()
         endforeach()
         list(APPEND ${ARGS_NAME}_SEARCH_DIRS ${DEPENDENCIES_DIRS})
     endif()
@@ -138,7 +139,7 @@ macro(create_target NAME)
 endmacro(create_target)
 
 macro(find_export)
-    find(${ARGS_NAME}_EXPORT_FILE STATUS
+    find(${ARGS_NAME}_EXPORT_FILE STATUS DEBUG
         PATHS ${${ARGS_NAME}_SEARCH_DIRS}
         INDICATOR ${ARGS_EXPORT_NAME}
         DOC "${ARGS_NAME} export file")
@@ -171,14 +172,17 @@ macro(find_src)
     set(${ARGS_NAME}_SRC_SEARCH_DIRS "")
     if(DEPENDENCIES_SRC_DIRS_EXISTS)
         foreach(PATH ${DEPENDENCIES_SRC_DIRS})
-            if(EXISTS "${PATH}${ARGS_PATH_HINT}")
-                list(APPEND ${ARGS_NAME}_SRC_SEARCH_DIRS "${PATH}${ARGS_PATH_HINT}")
-            endif()
+            foreach(HINT ${ARGS_HINTS})
+                add_to_path(PATH_WITH_HINT "${PATH}" "${HINT}")
+                if(EXISTS "${PATH_WITH_HINT}")
+                    list(APPEND ${ARGS_NAME}_SRC_SEARCH_DIRS "${PATH_WITH_HINT}")
+                endif()
+            endforeach()
         endforeach()
         list(APPEND ${ARGS_NAME}_SRC_SEARCH_DIRS "${DEPENDENCIES_SRC_DIRS}")
     endif()
 
-    find(${ARGS_NAME}_CMAKE_FILE STATUS LOUD
+    find(${ARGS_NAME}_CMAKE_FILE STATUS DEBUG
         PATHS ${${ARGS_NAME}_SRC_SEARCH_DIRS}
         INDICATOR ${ARGS_CMAKE_INDICATOR}
         LEVEL ${ARGS_CMAKE_LEVEL}
@@ -212,10 +216,10 @@ function(find_dependency)
         LIBNAME RUNTIMENAME
         DLIBNAME DRUNTIMENAME
         INCLUDE_INDICATOR INCLUDE_LEVEL
-        PATH_HINT
         CMAKE_INDICATOR CMAKE_LEVEL
         EXPORT_NAME EXPORT_TARGET
         ROOT_LEVEL)
+    set(multiValueArgs HINTS)
     # TODO: set(multiValueArgs ADDITIONAL_DEPENDENCIES)
     set(options HEADERONLY STATIC SRC)
 
@@ -223,8 +227,8 @@ function(find_dependency)
 
     message(STATUS "Searching ${ARGS_NAME}")
 
-    if("${ARGS_PATH_HINT}" STREQUAL "")
-        set(ARGS_PATH_HINT ${ARGS_NAME})
+    if("${ARGS_HINTS}" STREQUAL "")
+        set(ARGS_HINTS ${ARGS_NAME})
     endif()
 
     include(FindPackageHandleStandardArgs)
@@ -241,7 +245,7 @@ function(find_dependency)
 
     find_export()
 
-    find(${ARGS_NAME}_INCLUDE_DIR STATUS LOUD
+    find(${ARGS_NAME}_INCLUDE_DIR STATUS DEBUG
         PATHS ${${ARGS_NAME}_SEARCH_DIRS}
         INDICATOR ${ARGS_INCLUDE_INDICATOR}
         LEVEL ${ARGS_INCLUDE_LEVEL}
